@@ -1,0 +1,16 @@
+{
+  "name": "英语翻译",
+  "short_name": "翻译",
+  "description": "英语翻译、朗读、生词本",
+  "start_url": "/english-translator/",
+  "display": "standalone",
+  "background_color": "#f5f5f5",
+  "theme_color": "#4f46e5",
+  "orientation": "any",
+  "icons": [{
+    "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%234f46e5'/%3E%3Ctext x='96' y='110' text-anchor='middle' font-size='90' font-family='sans-serif' fill='white'%3EAa%3C/text%3E%3C/svg%3E",
+    "sizes": "192x192",
+    "type": "image/svg+xml",
+    "purpose": "any maskable"
+  }]
+}
