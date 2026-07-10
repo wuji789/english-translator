@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="英语翻译">
+  <title>英语翻译</title>
+
+  <!--
+    生词本数据存储在浏览器 localStorage 中，无需任何云服务。
+    翻译直接调用 DeepSeek API，无需后端代理。
+  -->
+
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #f5f5f5;
+      --card: #ffffff;
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --primary-light: #eef2ff;
+      --text: #1e293b;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      --border: #e2e8f0;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --success: #22c55e;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+      --max-width: 640px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .app {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 16px;
+      padding-bottom: 40px;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      padding: 24px 0 16px;
+    }
+    .header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: -0.5px;
+    }
+    .header p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Card */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    /* Translation Section */
+    .translate-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .textarea-wrapper {
+      position: relative;
+    }
+    .textarea-wrapper label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 14px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 16px;
+      font-family: inherit;
+      line-height: 1.6;
+      resize: vertical;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      background: #fafbfc;
+      color: var(--text);
+      outline: none;
+    }
+    textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+      background: var(--card);
+    }
+    textarea::placeholder {
+      color: var(--text-muted);
+    }
+    textarea.output {
+      background: #f8faff;
+      cursor: default;
+    }
+
+    .char-count {
+      position: absolute;
+      bottom: 12px;
+      right: 14px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 18px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s;
+      outline: none;
+      white-space: nowrap;
+      text-decoration: none;
+    }
+    .btn:active {
+      transform: scale(0.97);
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      flex: 1;
+      min-width: 100px;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-hover);
+      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+    }
+    .btn-outline {
+      background: var(--card);
+      color: var(--primary);
+      border: 2px solid var(--primary);
+    }
+    .btn-outline:hover:not(:disabled) {
+      background: var(--primary-light);
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-secondary);
+      padding: 8px 12px;
+    }
+    .btn-ghost:hover:not(:disabled) {
+      background: #f1f5f9;
+      color: var(--text);
+    }
+    .btn-icon {
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border-radius: 50%;
+      flex: 0 0 auto;
+    }
+
+    .btn .icon {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Vocabulary Section */
+    .vocab-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .vocab-header h2 {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .vocab-count {
+      font-size: 13px;
+      color: var(--text-muted);
+      background: var(--bg);
+      padding: 2px 10px;
+      border-radius: 20px;
+    }
+
+    .word-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .word-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: #fafbfc;
+      border-radius: var(--radius-sm);
+      transition: background 0.2s;
+    }
+    .word-item:hover {
+      background: var(--primary-light);
+    }
+    .word-item .word-text {
+      flex: 1;
+      min-width: 0;
+    }
+    .word-item .word-original {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      word-break: break-word;
+    }
+    .word-item .word-translation {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+      word-break: break-word;
+    }
+    .word-item .word-time {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .word-item .btn-delete {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border: none;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      font-size: 16px;
+    }
+    .word-item .btn-delete:hover {
+      background: #fee2e2;
+      color: var(--danger);
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--text-muted);
+    }
+    .empty-state .empty-icon {
+      font-size: 40px;
+      margin-bottom: 8px;
+      opacity: 0.5;
+    }
+    .empty-state p {
+      font-size: 14px;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #1e293b;
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 24px;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      z-index: 1000;
+      transition: transform 0.3s ease;
+      pointer-events: none;
+    }
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+    .toast.error {
+      background: var(--danger);
+    }
+
+    /* Loading skeleton for word list */
+    .skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: var(--radius-sm);
+      height: 60px;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* Responsive */
+    @media (min-width: 640px) {
+      .app {
+        padding: 24px;
+        padding-bottom: 48px;
+      }
+      .header h1 {
+        font-size: 28px;
+      }
+      textarea {
+        min-height: 120px;
+        font-size: 17px;
+      }
+      .btn {
+        font-size: 15px;
+        padding: 12px 22px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <h1>英语翻译</h1>
+      <p>翻译 · 朗读 · 生词本</p>
+    </header>
+
+    <!-- Translation Card -->
+    <div class="card">
+      <div class="translate-section">
+        <div class="textarea-wrapper">
+          <label for="sourceText">原文</label>
+          <textarea
+            id="sourceText"
+            placeholder="输入要翻译的英文或中文…"
+            maxlength="2000"
+          ></textarea>
+          <span class="char-count" id="charCount">0 / 2000</span>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnTranslate" disabled>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 8l6 6"/><path d="M4 14l6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="M22 22l-5-5"/><path d="M16.5 21.5a5.5 5.5 0 1 0-11 0 5.5 5.5 0 0 0 11 0z"/>
+            </svg>
+            翻译
+          </button>
+          <button class="btn btn-outline btn-icon" id="btnSpeakSource" title="朗读原文（英文）" disabled>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            </svg>
+          </button>
+          <button class="btn btn-outline btn-icon" id="btnSpeakTrans" title="朗读译文（中文）" disabled>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            </svg>
+          </button>
+          <button class="btn btn-outline btn-icon" id="btnAddWord" title="添加到生词本" disabled>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="textarea-wrapper">
+          <label for="transText">译文</label>
+          <textarea
+            id="transText"
+            class="output"
+            placeholder="翻译结果将显示在这里…"
+            readonly
+          ></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vocabulary Card -->
+    <div class="card">
+      <div class="vocab-header">
+        <h2>生词本</h2>
+        <span class="vocab-count" id="vocabCount">0 个单词</span>
+      </div>
+
+      <div id="wordListContainer">
+        <div class="empty-state" id="vocabEmpty">
+          <div class="empty-icon">📖</div>
+          <p>还没有生词</p>
+          <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">翻译后点击书签按钮添加</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ============================================================
+    // 应用主逻辑
+    // ============================================================
+
+    // DOM 元素
+    const sourceText = document.getElementById('sourceText');
+    const transText = document.getElementById('transText');
+    const charCount = document.getElementById('charCount');
+    const btnTranslate = document.getElementById('btnTranslate');
+    const btnSpeakSource = document.getElementById('btnSpeakSource');
+    const btnSpeakTrans = document.getElementById('btnSpeakTrans');
+    const btnAddWord = document.getElementById('btnAddWord');
+    const wordListContainer = document.getElementById('wordListContainer');
+    const vocabCount = document.getElementById('vocabCount');
+    const toast = document.getElementById('toast');
+
+    // 状态
+    let currentTranslation = '';
+    let words = [];
+
+    // ============================================================
+    // Toast 提示
+    // ============================================================
+    let toastTimer = null;
+    function showToast(message, isError = false) {
+      if (toastTimer) clearTimeout(toastTimer);
+      toast.textContent = message;
+      toast.className = 'toast' + (isError ? ' error' : '');
+      requestAnimationFrame(() => {
+        toast.classList.add('show');
+        toastTimer = setTimeout(() => {
+          toast.classList.remove('show');
+        }, 2500);
+      });
+    }
+
+    // ============================================================
+    // 生词本操作（localStorage）
+    // ============================================================
+    const STORAGE_KEY = 'translator_words';
+
+    function loadWords() {
+      try {
+        const data = localStorage.getItem(STORAGE_KEY);
+        words = data ? JSON.parse(data) : [];
+      } catch {
+        words = [];
+      }
+    }
+
+    function saveWords() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(words));
+    }
+
+    function addWord(word, translation) {
+      // 去重：如果已存在相同的单词，不重复添加
+      if (words.some(w => w.word === word && w.translation === translation)) {
+        showToast('该单词已在生词本中');
+        return false;
+      }
+      words.unshift({
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        word,
+        translation,
+        created_at: Date.now()
+      });
+      saveWords();
+      showToast('已添加到生词本');
+      return true;
+    }
+
+    function deleteWord(id) {
+      words = words.filter(w => w.id !== id);
+      saveWords();
+      showToast('已删除');
+      return true;
+    }
+
+    function renderWordList() {
+      if (words.length === 0) {
+        wordListContainer.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">📖</div>
+            <p>还没有生词</p>
+            <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">翻译后点击书签按钮添加</p>
+          </div>`;
+      } else {
+        wordListContainer.innerHTML = `
+          <div class="word-list">
+            ${words.map(w => `
+              <div class="word-item" data-id="${w.id}">
+                <div class="word-text">
+                  <div class="word-original">${escapeHtml(w.word)}</div>
+                  <div class="word-translation">${escapeHtml(w.translation)}</div>
+                  <div class="word-time">${formatTime(w.created_at)}</div>
+                </div>
+                <button class="btn-delete" data-delete="${w.id}" title="删除">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                  </svg>
+                </button>
+              </div>`).join('')}
+          </div>`;
+      }
+      vocabCount.textContent = `${words.length} 个单词`;
+
+      // 绑定删除事件
+      wordListContainer.querySelectorAll('[data-delete]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.delete;
+          deleteWord(id);
+          renderWordList();
+        });
+      });
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function formatTime(ts) {
+      const d = new Date(ts);
+      const now = new Date();
+      const diff = now - d;
+      if (diff < 60000) return '刚刚';
+      if (diff < 3600000) return Math.floor(diff / 60000) + ' 分钟前';
+      if (diff < 86400000) return Math.floor(diff / 3600000) + ' 小时前';
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${month}-${day}`;
+    }
+
+    // ============================================================
+    // 翻译（直接调用 DeepSeek API）
+    // ============================================================
+    // TODO: 请填入你的 DeepSeek API Key（从 platform.deepseek.com 获取）
+    const DEEPSEEK_API_KEY = 'sk-your-deepseek-api-key';
+
+    async function doTranslate() {
+      const text = sourceText.value.trim();
+      if (!text) return;
+
+      btnTranslate.disabled = true;
+      btnTranslate.innerHTML = '<span class="spinner"></span> 翻译中…';
+
+      try {
+        const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: 'deepseek-chat',
+            messages: [
+              { role: 'system', content: '你是一个翻译助手。将用户输入翻译成对应语言：英文翻译成中文，中文翻译成英文。只返回译文，不要添加任何解释。' },
+              { role: 'user', content: text }
+            ],
+            temperature: 0.3,
+            max_tokens: 2000
+          })
+        });
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        currentTranslation = data.choices?.[0]?.message?.content?.trim() || '';
+        transText.value = currentTranslation;
+
+        if (currentTranslation) {
+          btnSpeakSource.disabled = false;
+          btnSpeakTrans.disabled = false;
+          btnAddWord.disabled = false;
+        }
+      } catch (err) {
+        console.error('翻译失败:', err);
+        showToast('翻译失败，请检查网络或后端服务', true);
+        currentTranslation = '';
+        transText.value = '';
+      } finally {
+        btnTranslate.disabled = false;
+        btnTranslate.innerHTML = `
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 8l6 6"/><path d="M4 14l6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="M22 22l-5-5"/><path d="M16.5 21.5a5.5 5.5 0 1 0-11 0 5.5 5.5 0 0 0 11 0z"/>
+          </svg>
+          翻译`;
+      }
+    }
+
+    // ============================================================
+    // 朗读（SpeechSynthesis）
+    // ============================================================
+    function speak(text, lang) {
+      if (!text || !window.speechSynthesis) return;
+
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = lang;
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+
+      // 选择合适的语音
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length > 0) {
+        const preferred = voices.find(v => v.lang.startsWith(lang));
+        if (preferred) utterance.voice = preferred;
+      }
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function speakSource() {
+      speak(sourceText.value.trim(), 'en-US');
+    }
+
+    function speakTranslation() {
+      speak(currentTranslation, 'zh-CN');
+    }
+
+    // 预加载语音列表
+    if (window.speechSynthesis) {
+      window.speechSynthesis.getVoices();
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+    }
+
+    // ============================================================
+    // 事件绑定
+    // ============================================================
+    sourceText.addEventListener('input', () => {
+      const len = sourceText.value.length;
+      charCount.textContent = `${len} / 2000`;
+      btnTranslate.disabled = len === 0;
+    });
+
+    sourceText.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        doTranslate();
+      }
+    });
+
+    btnTranslate.addEventListener('click', doTranslate);
+    btnSpeakSource.addEventListener('click', speakSource);
+    btnSpeakTrans.addEventListener('click', speakTranslation);
+
+    btnAddWord.addEventListener('click', () => {
+      const word = sourceText.value.trim();
+      const translation = currentTranslation;
+      if (!word || !translation) return;
+
+      btnAddWord.disabled = true;
+      const success = addWord(word, translation);
+      btnAddWord.disabled = false;
+
+      if (success) {
+        renderWordList();
+      }
+    });
+
+    // ============================================================
+    // PWA - Service Worker 注册
+    // ============================================================
+    if ('serviceWorker' in navigator) {
+      const swCode = `
+        const CACHE_NAME = 'translator-v1';
+        const urlsToCache = ['/'];
+
+        self.addEventListener('install', (event) => {
+          event.waitUntil(
+            caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache))
+          );
+          self.skipWaiting();
+        });
+
+        self.addEventListener('activate', (event) => {
+          event.waitUntil(
+            caches.keys().then((keys) =>
+              Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+            )
+          );
+          self.clients.claim();
+        });
+
+        self.addEventListener('fetch', (event) => {
+          if (event.request.method !== 'GET') return;
+          event.respondWith(
+            caches.match(event.request).then((cached) => {
+              const fetchPromise = fetch(event.request).then((response) => {
+                if (response && response.status === 200) {
+                  const clone = response.clone();
+                  caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+                }
+                return response;
+              }).catch(() => cached);
+              return cached || fetchPromise;
+            })
+          );
+        });
+      `;
+
+      const swBlob = new Blob([swCode], { type: 'application/javascript' });
+      const swUrl = URL.createObjectURL(swBlob);
+
+      navigator.serviceWorker.register(swUrl, { scope: '/' })
+        .then(() => console.log('Service Worker 注册成功'))
+        .catch(err => console.warn('Service Worker 注册失败:', err));
+    }
+
+    // ============================================================
+    // PWA - Manifest（内联 data URI）
+    // ============================================================
+    const manifest = {
+      name: '英语翻译',
+      short_name: '翻译',
+      description: '英语翻译、朗读、生词本',
+      start_url: '/',
+      display: 'standalone',
+      background_color: '#f5f5f5',
+      theme_color: '#4f46e5',
+      orientation: 'any',
+      icons: [{
+        src: 'data:image/svg+xml,' + encodeURIComponent(
+          '<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192"><rect width="192" height="192" rx="40" fill="#4f46e5"/><text x="96" y="110" text-anchor="middle" font-size="90" font-family="sans-serif" fill="white">Aa</text></svg>'
+        ),
+        sizes: '192x192',
+        type: 'image/svg+xml',
+        purpose: 'any maskable'
+      }]
+    };
+
+    const manifestLink = document.createElement('link');
+    manifestLink.rel = 'manifest';
+    manifestLink.href = 'data:application/json;base64,' + btoa(unescape(encodeURIComponent(JSON.stringify(manifest))));
+    document.head.appendChild(manifestLink);
+
+    // ============================================================
+    // 启动
+    // ============================================================
+    loadWords();
+    renderWordList();
+  </script>
+</body>
+</html>
