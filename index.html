@@ -7,6 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="英语翻译">
+  <link rel="manifest" href="data:application/json;base64,ewogICAgICAibmFtZSI6ICLoi7Hor63nv7vor5EiLAogICAgICAic2hvcnRfbmFtZSI6ICLnv7vor5EiLAogICAgICAiZGVzY3JpcHRpb24iOiAi6Iux6K+t57+76K+R44CB5pyX6K+744CB55Sf6K+N5pysIiwKICAgICAgInN0YXJ0X3VybCI6ICIvIiwKICAgICAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgICAgICJiYWNrZ3JvdW5kX2NvbG9yIjogIiNmNWY1ZjUiLAogICAgICAidGhlbWVfY29sb3IiOiAiIzRmNDZlNSIsCiAgICAgICJvcmllbnRhdGlvbiI6ICJhbnkiLAogICAgICAiaWNvbnMiOiBbewogICAgICAgICJzcmMiOiAiZGF0YTppbWFnZS9zdmcreG1sLCUzQ3N2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxOTInIGhlaWdodD0nMTkyJyB2aWV3Qm94PScwIDAgMTkyIDE5MiclM0UlM0NyZWN0IHdpZHRoPScxOTInIGhlaWdodD0nMTkyJyByeD0nNDAnIGZpbGw9JyM0ZjQ2ZTUnLyUzRSUzQ3RleHQgeD0nOTYnIHk9JzExMCcgdGV4dC1hbmNob3I9J21pZGRsZScgZm9udC1zaXplPSc5MCcgZm9udC1mYW1pbHk9J3NhbnMtc2VyaWYnIGZpbGw9J3doaXRlJyUzRUFhJTNBL3RleHQlM0UlM0Mvc3ZnJTNFIiwKICAgICAgICAic2l6ZXMiOiAiMTkyeDE5MiIsCiAgICAgICAgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIsCiAgICAgICAgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIgogICAgICB9XQogICAgfQ==">
   <title>英语翻译</title>
 
   <!--
@@ -766,33 +767,6 @@
         .then(() => console.log('Service Worker 注册成功'))
         .catch(err => console.warn('Service Worker 注册失败:', err));
     }
-
-    // ============================================================
-    // PWA - Manifest（内联 data URI）
-    // ============================================================
-    const manifest = {
-      name: '英语翻译',
-      short_name: '翻译',
-      description: '英语翻译、朗读、生词本',
-      start_url: '/',
-      display: 'standalone',
-      background_color: '#f5f5f5',
-      theme_color: '#4f46e5',
-      orientation: 'any',
-      icons: [{
-        src: 'data:image/svg+xml,' + encodeURIComponent(
-          '<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192"><rect width="192" height="192" rx="40" fill="#4f46e5"/><text x="96" y="110" text-anchor="middle" font-size="90" font-family="sans-serif" fill="white">Aa</text></svg>'
-        ),
-        sizes: '192x192',
-        type: 'image/svg+xml',
-        purpose: 'any maskable'
-      }]
-    };
-
-    const manifestLink = document.createElement('link');
-    manifestLink.rel = 'manifest';
-    manifestLink.href = 'data:application/json;base64,' + btoa(unescape(encodeURIComponent(JSON.stringify(manifest))));
-    document.head.appendChild(manifestLink);
 
     // ============================================================
     // 启动
